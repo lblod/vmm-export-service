@@ -43,4 +43,28 @@ Returns a page of annotations.
 }
 ```
 
+`transacties` is reported as a count and a link rather than inline, since a
+single actie can carry thousands of them:
+
+```json
+"transacties": {
+  "count": 18,
+  "totaleOntvangsten":	445944.26,
+  "totaleUitgaven":	300999.08,
+  "href": "/transacties?actie=123456"
+}
+```
+
+### GET /transacties
+
+Returns a page of transacties for one actie.
+
+| Query parameter | Default | Description |
+| --- | --- | --- |
+| `actie` | *(required)* | The actie's `dct:identifier`, as exported in `actie.id`. |
+| `page` | `0` | Zero-based page number. |
+| `size` | `PAGE_SIZE` | Transacties per page. |
+
+Same `{ data, meta, links }` envelope as `/export`.
+
 Requesting a page beyond the last one returns an empty `data` array rather than a 404. An invalid parameter returns a `400` with an `errors` array.

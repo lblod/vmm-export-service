@@ -1,6 +1,7 @@
 import { app, errorHandler } from 'mu';
 import { countAnnotations, getAnnotations } from './lib/annotation.js';
-import { toExportEntries } from './lib/export.js';
+import { toExportEntries, toTransactie } from './lib/export.js';
+import { countTransacties, getTransacties } from './lib/transaction.js';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from './config.js';
 
 /**
@@ -191,6 +192,7 @@ function parseIntegerParameter(name, value) {
  * @returns {{self: string, next: string|null, prev: string|null}}
  */
 const FILTER_PARAMETERS = [
+  'actie',
   'since',
   'minApproved',
   'minRejected',
@@ -217,6 +219,71 @@ function buildPageLinks(req, { page, size, total }) {
     next: hasNext ? linkTo(page + 1) : null,
     prev: page > 0 ? linkTo(page - 1) : null,
   };
+}
+
+/**
+ * Export the transacties of a single actie.
+ *
+ * Separate from /export because an actie can carry thousands of transacties,
+ * which cannot be paged inside a nested array. /export reports a count and a
+ * link here instead.
+ *
+ * Query parameters:
+ *   actie (required)  - the actie's dct:identifier, as exported in actie.id.
+ *   page (optional)   - zero-based page number. Defaults to 0.
+ *   size (optional)   - transacties per page. Defaults to PAGE_SIZE, capped
+ *                       at MAX_PAGE_SIZE.
+ */
+app.get('/export/transacties', async function (req, res, next) {
+  try {
+    const actieId = parseActie(req.query.actie);
+    const page = parsePage(req.query.page);
+    const size = parseSize(req.query.size);
+
+    const [transacties, total] = await Promise.all([
+      getTransacties(actieId, { page, size }),
+      countTransacties(actieId),
+    ]);
+
+    res.status(200).json({
+      data: transacties.map((transactie) => toTransactie(transactie, actieId)),
+      meta: {
+        count: transacties.length,
+        total,
+        page,
+        size,
+        pages: Math.ceil(total / size),
+      },
+      links: buildPageLinks(req, { page, size, total }),
+    });
+  } catch (e) {
+    if (e instanceof InvalidParameterError) {
+      res.status(400).json({
+        errors: [{ status: '400', title: e.message }]
+      });
+    } else {
+      next(e);
+    }
+  }
+});
+
+/**
+ * Validates and parses the required `actie` query parameter.
+ */
+function parseActie(value) {
+  if (value === undefined || value === '') {
+    throw new InvalidParameterError(
+      "Missing required query parameter 'actie'. Expected the identifier of an actie, as exported in actie.id."
+    );
+  }
+
+  if (Array.isArray(value)) {
+    throw new InvalidParameterError(
+      "Query parameter 'actie' may only be provided once."
+    );
+  }
+
+  return value;
 }
 
 app.use(errorHandler);
