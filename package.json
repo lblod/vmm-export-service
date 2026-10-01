@@ -1,6 +1,6 @@
 {
   "name": "vmm-export-service",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "description": "Service that exports codelist annotations and their reviews.",
   "main": "app.js",
