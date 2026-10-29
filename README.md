@@ -51,17 +51,18 @@ single actie can carry thousands of them:
   "count": 18,
   "totaleOntvangsten":	445944.26,
   "totaleUitgaven":	300999.08,
-  "href": "/transacties?actie=123456"
+  "href": "/export/transacties?actie=123456"
 }
 ```
 
-### GET /transacties
+### GET /export/transacties
 
-Returns a page of transacties for one actie.
+Returns a page of transacties for one actie, or, without `actie`, a page of
+the transacties of every actie. Each transactie carries its `actie_id`.
 
 | Query parameter | Default | Description |
 | --- | --- | --- |
-| `actie` | *(required)* | The actie's `dct:identifier`, as exported in `actie.id`. |
+| `actie` | | The actie's `dct:identifier`, as exported in `actie.id`. When omitted, all transacties are exported. |
 | `page` | `0` | Zero-based page number. |
 | `size` | `PAGE_SIZE` | Transacties per page. |
 

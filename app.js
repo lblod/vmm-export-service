@@ -222,14 +222,16 @@ function buildPageLinks(req, { page, size, total }) {
 }
 
 /**
- * Export the transacties of a single actie.
+ * Export the transacties of a single actie, or of every actie.
  *
  * Separate from /export because an actie can carry thousands of transacties,
  * which cannot be paged inside a nested array. /export reports a count and a
  * link here instead.
  *
  * Query parameters:
- *   actie (required)  - the actie's dct:identifier, as exported in actie.id.
+ *   actie (optional)  - the actie's dct:identifier, as exported in actie.id.
+ *                       When omitted, pages over the transacties of every
+ *                       actie; each carries its own actie_id.
  *   page (optional)   - zero-based page number. Defaults to 0.
  *   size (optional)   - transacties per page. Defaults to PAGE_SIZE, capped
  *                       at MAX_PAGE_SIZE.
@@ -246,7 +248,7 @@ app.get('/export/transacties', async function (req, res, next) {
     ]);
 
     res.status(200).json({
-      data: transacties.map((transactie) => toTransactie(transactie, actieId)),
+      data: transacties.map(toTransactie),
       meta: {
         count: transacties.length,
         total,
@@ -268,13 +270,13 @@ app.get('/export/transacties', async function (req, res, next) {
 });
 
 /**
- * Validates and parses the required `actie` query parameter.
+ * Validates and parses the optional `actie` query parameter.
+ *
+ * @returns {string|null} the actie identifier, or null for every actie
  */
 function parseActie(value) {
   if (value === undefined || value === '') {
-    throw new InvalidParameterError(
-      "Missing required query parameter 'actie'. Expected the identifier of an actie, as exported in actie.id."
-    );
+    return null;
   }
 
   if (Array.isArray(value)) {
