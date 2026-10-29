@@ -63,9 +63,28 @@ the transacties of every actie. Each transactie carries its `actie_id`.
 | Query parameter | Default | Description |
 | --- | --- | --- |
 | `actie` | | The actie's `dct:identifier`, as exported in `actie.id`. When omitted, all transacties are exported. |
-| `page` | `0` | Zero-based page number. |
+| `after` | | Cursor, as found in `links.next`. Omit for the first page. |
 | `size` | `PAGE_SIZE` | Transacties per page. |
 
-Same `{ data, meta, links }` envelope as `/export`.
+Pages with a cursor rather than a page number. Follow `links.next` until it
+is `null`.
+
+```json
+{
+  "data": [ ... ],
+  "meta": {
+    "count": 1000,
+    "total": 1919958,
+    "size": 1000
+  },
+  "links": {
+    "self": "/export/transacties?size=1000",
+    "next": "/export/transacties?after=http%3A%2F%2F...%2Ftransactie%2F323214992&size=1000"
+  }
+}
+```
+
+A full page can be the last one, in which case the next page comes back with
+an empty `data` and `links.next` set to `null`.
 
 Requesting a page beyond the last one returns an empty `data` array rather than a 404. An invalid parameter returns a `400` with an `errors` array.

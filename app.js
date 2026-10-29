@@ -192,7 +192,6 @@ function parseIntegerParameter(name, value) {
  * @returns {{self: string, next: string|null, prev: string|null}}
  */
 const FILTER_PARAMETERS = [
-  'actie',
   'since',
   'minApproved',
   'minRejected',
@@ -228,35 +227,48 @@ function buildPageLinks(req, { page, size, total }) {
  * which cannot be paged inside a nested array. /export reports a count and a
  * link here instead.
  *
+ * Pages with a cursor instead of a page number, as there are too many
+ * transacties for Virtuoso to page through with an OFFSET. Follow links.next
+ * until it is null.
+ *
  * Query parameters:
  *   actie (optional)  - the actie's dct:identifier, as exported in actie.id.
  *                       When omitted, pages over the transacties of every
  *                       actie; each carries its own actie_id.
- *   page (optional)   - zero-based page number. Defaults to 0.
+ *   after (optional)  - cursor, as found in links.next. Omit for the first
+ *                       page.
  *   size (optional)   - transacties per page. Defaults to PAGE_SIZE, capped
  *                       at MAX_PAGE_SIZE.
  */
 app.get('/export/transacties', async function (req, res, next) {
   try {
+    if (req.query.page !== undefined) {
+      throw new InvalidParameterError(
+        "Query parameter 'page' is not supported here. Follow links.next, which pages with 'after'."
+      );
+    }
+
     const actieId = parseActie(req.query.actie);
-    const page = parsePage(req.query.page);
+    const after = parseAfter(req.query.after);
     const size = parseSize(req.query.size);
 
     const [transacties, total] = await Promise.all([
-      getTransacties(actieId, { page, size }),
+      getTransacties(actieId, { after, size }),
       countTransacties(actieId),
     ]);
+
+    // A full page may still be the last one; the next then comes back empty.
+    const nextAfter =
+      transacties.length === size ? transacties.at(-1).uri : null;
 
     res.status(200).json({
       data: transacties.map(toTransactie),
       meta: {
         count: transacties.length,
         total,
-        page,
         size,
-        pages: Math.ceil(total / size),
       },
-      links: buildPageLinks(req, { page, size, total }),
+      links: buildCursorLinks(req, { actieId, after, nextAfter, size }),
     });
   } catch (e) {
     if (e instanceof InvalidParameterError) {
@@ -286,6 +298,52 @@ function parseActie(value) {
   }
 
   return value;
+}
+
+/**
+ * Validates and parses the optional `after` cursor.
+ *
+ * @returns {string|null} the cursor, or null for the first page
+ */
+function parseAfter(value) {
+  if (value === undefined || value === '') {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    throw new InvalidParameterError(
+      "Query parameter 'after' may only be provided once."
+    );
+  }
+
+  return value;
+}
+
+/**
+ * Builds the self/next links for a cursor-paged result.
+ *
+ * @param {object} req the incoming request, used for the base path
+ * @param {{actieId: string|null, after: string|null,
+ *          nextAfter: string|null, size: number}} paging
+ * @returns {{self: string, next: string|null}}
+ */
+function buildCursorLinks(req, { actieId, after, nextAfter, size }) {
+  const linkTo = (cursor) => {
+    const params = new URLSearchParams();
+    if (actieId) {
+      params.set('actie', actieId);
+    }
+    if (cursor) {
+      params.set('after', cursor);
+    }
+    params.set('size', size);
+    return `${req.path}?${params}`;
+  };
+
+  return {
+    self: linkTo(after),
+    next: nextAfter ? linkTo(nextAfter) : null,
+  };
 }
 
 app.use(errorHandler);
