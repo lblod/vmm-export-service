@@ -192,6 +192,7 @@ function parseIntegerParameter(name, value) {
  * @returns {{self: string, next: string|null, prev: string|null}}
  */
 const FILTER_PARAMETERS = [
+  'actie',
   'since',
   'minApproved',
   'minRejected',
@@ -227,9 +228,10 @@ function buildPageLinks(req, { page, size, total }) {
  * which cannot be paged inside a nested array. /export reports a count and a
  * link here instead.
  *
- * Pages with a cursor instead of a page number, as there are too many
- * transacties for Virtuoso to page through with an OFFSET. Follow links.next
- * until it is null.
+ * Pages with a cursor, unless a page number is asked for. Page numbers are
+ * kept for backward compatibility, but Virtuoso refuses to sort more than
+ * 10000 rows for an OFFSET, so they fail once (page + 1) * size exceeds that.
+ * Follow links.next until it is null.
  *
  * Query parameters:
  *   actie (optional)  - the actie's dct:identifier, as exported in actie.id.
@@ -237,20 +239,43 @@ function buildPageLinks(req, { page, size, total }) {
  *                       actie; each carries its own actie_id.
  *   after (optional)  - cursor, as found in links.next. Omit for the first
  *                       page.
+ *   page (optional)   - zero-based page number. Pages by number instead of
+ *                       with the cursor; cannot be combined with after.
  *   size (optional)   - transacties per page. Defaults to PAGE_SIZE, capped
  *                       at MAX_PAGE_SIZE.
  */
 app.get('/export/transacties', async function (req, res, next) {
   try {
-    if (req.query.page !== undefined) {
-      throw new InvalidParameterError(
-        "Query parameter 'page' is not supported here. Follow links.next, which pages with 'after'."
-      );
-    }
-
     const actieId = parseActie(req.query.actie);
     const after = parseAfter(req.query.after);
     const size = parseSize(req.query.size);
+
+    if (req.query.page !== undefined && req.query.page !== '') {
+      if (after) {
+        throw new InvalidParameterError(
+          "Query parameters 'page' and 'after' cannot be combined."
+        );
+      }
+
+      const page = parsePage(req.query.page);
+      const [transacties, total] = await Promise.all([
+        getTransacties(actieId, { page, size }),
+        countTransacties(actieId),
+      ]);
+
+      res.status(200).json({
+        data: transacties.map(toTransactie),
+        meta: {
+          count: transacties.length,
+          total,
+          page,
+          size,
+          pages: Math.ceil(total / size),
+        },
+        links: buildPageLinks(req, { page, size, total }),
+      });
+      return;
+    }
 
     const [transacties, total] = await Promise.all([
       getTransacties(actieId, { after, size }),

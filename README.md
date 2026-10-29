@@ -64,10 +64,13 @@ the transacties of every actie. Each transactie carries its `actie_id`.
 | --- | --- | --- |
 | `actie` | | The actie's `dct:identifier`, as exported in `actie.id`. When omitted, all transacties are exported. |
 | `after` | | Cursor, as found in `links.next`. Omit for the first page. |
+| `page` | | Zero-based page number. Pages by number instead of with the cursor. Cannot be combined with `after`. |
 | `size` | `PAGE_SIZE` | Transacties per page. |
 
-Pages with a cursor rather than a page number. Follow `links.next` until it
-is `null`.
+#### Cursor paging (recommended)
+
+Without `page`, the endpoint pages with a cursor. Follow `links.next` until it
+is `null`. This reaches every transactie, however many there are.
 
 ```json
 {
@@ -86,5 +89,25 @@ is `null`.
 
 A full page can be the last one, in which case the next page comes back with
 an empty `data` and `links.next` set to `null`.
+
+#### Page numbers
+
+With `page`, the endpoint pages by number, the same way as `/export`: `meta`
+also has `page` and `pages`, and `links` has page-numbered `self`, `next` and
+`prev`. This is kept for backward compatibility.
+
+Page numbers only reach the first 10000 transacties: a request works as long
+as `(page + 1) * size` is at most 10000. With `size=1000` that is up to
+`page=9`; with `size=5000`, up to `page=1`. Beyond that the request fails with
+a `400`:
+
+```json
+{
+  "errors": [{ "title": "HTTP Error: 500 Internal Server Error" }]
+}
+```
+
+Use the cursor whenever you may need more than 10000 transacties, such as
+when exporting all of them.
 
 Requesting a page beyond the last one returns an empty `data` array rather than a 404. An invalid parameter returns a `400` with an `errors` array.
