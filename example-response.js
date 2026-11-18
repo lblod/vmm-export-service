@@ -65,7 +65,9 @@
     }],
     "aanlevering": {
       "id": "10000161889",
-      "rapportjaar": "2026"
+      "rapportjaar": "2026",
+      "statusRapport": "Herziening-Overdracht-2026",
+      "meestRecent": true
     },
     "transacties": [
       {
