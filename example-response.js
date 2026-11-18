@@ -27,7 +27,8 @@
       "korteOmschrijving": "4.4.6. Duurzaam beheer bossen en parken",
       "langeOmschrijving": "4.4.6. Duurzaam beheer bossen en parken\r\n- Natuurbeheerplannen evalueren en afstemmen op Natura 2000 en instandhoudingsdoelstellingen\r\n- Natuurbeheerplannen vertalen voor inwoners\r\n- Samenwerkingsovereenkomst met Bosgroep Houtland en communiceren over het gevoerde beheer",
       "commentaar": "",
-      "evaluatie": ""
+      "evaluatie": "",
+      "prioritair": false
     },
     "actieplan": {
       "id": "5415274",
@@ -35,7 +36,8 @@
       "korteOmschrijving": "4.4. Inrichten en onderhouden van een onderhoudsvriendelijke en klimaat robuuste publieke ruimte met",
       "langeOmschrijving": "4.4. Inrichten en onderhouden van een onderhoudsvriendelijke en klimaat robuuste publieke ruimte met een hoge belevingswaarde",
       "commentaar": "",
-      "evaluatie": ""
+      "evaluatie": "",
+      "prioritair": false
     },
     "beleidsdoelstelling": {
       "id": "2357859",
