@@ -1,15 +1,12 @@
 {
   "name": "vmm-export-service",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "type": "module",
   "description": "Service that exports codelist annotations and their reviews.",
   "main": "app.js",
   "author": "redpencil.io",
   "license": "MIT",
-  "devDependencies": {
-  },
-  "scripts": {
-  },
-  "dependencies": {
-  }
+  "devDependencies": {},
+  "scripts": {},
+  "dependencies": {}
 }
